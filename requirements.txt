@@ -1,0 +1,6 @@
+cryptocompare
+requests
+py-etherscan-api
+flexpoolapi
+influxdb
+colorama
