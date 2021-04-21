@@ -14,4 +14,4 @@ RUN pip3 install -r requirements.txt
 COPY src/ .
 
 # command to run on container start
-CMD [ "python3","-u","./getstats.py" ] 
+CMD [ "python","-u","./getstats.py" ] 
