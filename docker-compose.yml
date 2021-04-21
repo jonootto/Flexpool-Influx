@@ -13,5 +13,5 @@ services:
       INFLUX_PASS: $INFLUX_PASS
       ETHERSCAN_KEY: $ETHERSCAN_KEY
       WALLET: $WALLET
-    security_opt:
-      - seccomp:unconfined
+#    security_opt:
+#      - seccomp:unconfined
