@@ -1,9 +1,6 @@
-cryptocompare
+#cryptocompare
 requests
 py-etherscan-api
 flexpoolapi
 influxdb
 colorama
-pyasn1
-pyopenssl
-ndg-httpsclient
