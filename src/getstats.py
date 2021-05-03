@@ -67,8 +67,12 @@ def getflex():
     return ethbalance
 
 def getmeta():
-    api = Account(address=wallet, api_key=key)
-    balance = int(api.get_balance()) / pow(10,18)
+    try:
+        balance = int(api.get_balance()) / pow(10,18)
+    except:
+        print("API issue")
+        print("Error ", sys.exc_info()[0])
+        balance = 0
     return balance
 
 def update_balance():
@@ -163,17 +167,12 @@ def main():
         print("Error ", sys.exc_info()[0])
 
 
-# with open("./settings.json") as json_data_file:
-#     settings = json.load(json_data_file)
-#     wallet = settings['api-settings']['wallet']
-#     key = settings['api-settings']['etherscan-key']
-#     influxip = settings['influx-settings']['host']
-#     influxport = settings['influx-settings']['port']
-#     influxuser = settings['influx-settings']['username']
-#     influspass = settings['influx-settings']['password']
 
 key = os.environ['ETHERSCAN_KEY']
+
 wallet = os.environ['WALLET']
+
+api = Account(address=wallet, api_key=key)
 
 miner = flexpoolapi.miner(wallet)
 g = {}
