@@ -3,7 +3,6 @@
 import sys
 import flexpoolapi
 import json
-from influxdb import InfluxDBClient
 from datetime import datetime, timedelta
 from etherscan.accounts import Account
 import requests
@@ -11,7 +10,7 @@ from time import sleep
 from multiprocessing import Process
 from colorama import Fore
 import os
-#from requests.models import RequestEncodingMixin
+from prometheus_client import Gauge, start_http_server
 
 
 def time_string():
@@ -25,38 +24,15 @@ def profitability():
     profit = miner.estimated_daily_revenue() / pow(10,18)
     nzprofit = selleth * profit
     print("    Current profitabilty " + Fore.RED + str(round(profit,4)) + "eth/Day. $" + str(round(nzprofit,2)) + "NZD/day" + Fore.RESET)
-    json_body = [
-    {
-        "measurement": "Profitability",
-        "tags": {
-            "pool" : "flexpool"
-        },
-        "time": time_string(),
-        "fields": {
-            "ETH": profit,
-            "NZD": nzprofit
-        }
-    }
-    ]
-    toinflux(json_body)
+    g['profit'].labels(currency="NZD").set(nzprofit)
+    g['profit'].labels(currency="ETH").set(profit)
 
 
 def current_hashrate():
     hashrate = miner.current_hashrate()[0]
     print("    Current Hashrate " + Fore.RED + str(round(hashrate/1000000,1)) + "MH/s" + Fore.RESET)
-    json_body = [
-    {
-        "measurement": "worker-hashrate",
-        "tags": {
-            "pool" : "flexpool"
-        },
-        "time": time_string(),
-        "fields": {
-            "hashrate": hashrate
-        }
-    }
-    ]
-    toinflux(json_body)
+    g['hashrate'].set(hashrate)
+    
 
 def eth_nzd():
     response = requests.get("https://api.easycrypto.nz/public/api/ticker/ETHNZD")
@@ -78,77 +54,13 @@ def pool_hashrate():
     euhash = int(hashrate["eu"])
     ushash = int(hashrate["us"])
     sahash = int(hashrate["sa"])
+    g['pool'].labels(region="Total").set(totalhash)
+    g['pool'].labels(region="Asia").set(ashash)    
+    g['pool'].labels(region="Australia").set(auhash)    
+    g['pool'].labels(region="Europe").set(euhash)
+    g['pool'].labels(region="US").set(ushash)
+    g['pool'].labels(region="South America").set(sahash)        
 
-
-    json_body = [
-    {
-        "measurement": "pool-hashrate",
-        "tags": {
-            "pool" : "flexpool",
-            "region" : "Total"
-        },
-        "time": time_string(),
-        "fields": {
-            "hashrate": totalhash
-        }
-    },
-    {
-        "measurement": "pool-hashrate",
-        "tags": {
-            "pool" : "flexpool",
-            "region" : "Asia"
-        },
-        "time": time_string(),
-        "fields": {
-            "hashrate": ashash
-        }
-    },
-    {
-        "measurement": "pool-hashrate",
-        "tags": {
-            "pool" : "flexpool",
-            "region" : "Australasia"
-        },
-        "time": time_string(),
-        "fields": {
-            "hashrate": auhash
-        }
-    },
-        {
-        "measurement": "pool-hashrate",
-        "tags": {
-            "pool" : "flexpool",
-            "region" : "South America"
-        },
-        "time": time_string(),
-        "fields": {
-            "hashrate": sahash
-        }
-    },
-    {
-        "measurement": "pool-hashrate",
-        "tags": {
-            "pool" : "flexpool",
-            "region" : "Europe"
-        },
-        "time": time_string(),
-        "fields": {
-            "hashrate": euhash
-        }
-    },            
-    {
-        "measurement": "pool-hashrate",
-        "tags": {
-            "pool" : "flexpool",
-            "region" : "US"
-        },
-        "time": time_string(),
-        "fields": {
-            "hashrate": ushash
-        }
-    }
-    ]
-    toinflux(json_body)
 
 def getflex():
     ethbalance = miner.balance() / pow(10,18)
@@ -162,97 +74,28 @@ def getmeta():
 def update_balance():
     ethbalance = getflex()
     print("    " + Fore.RED +str(round(ethbalance,3)) + "ETH " + Fore.RESET + "in flexpool wallet")
-    json_body = [
-    {
-        "measurement": "balance",
-        "tags": {
-            "wallet" : wallet,
-            "currency" : "eth",
-            "pool" : "flexpool"
+    g['balance'].labels(wallet="Flexpool").set(ethbalance)
 
-        },
-        "time": time_string(),
-        "fields": {
-            "amount": ethbalance
-        }
-    }
-    ]
-    toinflux(json_body)
-
-def toinflux(input):
-    client.write_points(input,time_precision='s')
-
-def setdb():
-    dbname = 'miner'
-    makedb = True
-    dbs = client.get_list_database()
-    for x in dbs:
-        if (x['name']) == dbname:
-            makedb = False
-
-    if makedb:
-        print('making the db')
-        client.create_database(dbname)
-    else:
-        client.switch_database(dbname)
 
 def wallet_balance():   
     balance = getmeta()
     print("    " + Fore.RED + str(round(balance,3)) + "ETH " + Fore.RESET +  "in metamask wallet")
-    json_body = [
-    {
-        "measurement": "wallet-balance",
-        "tags": {
-            "wallet" : wallet
-        },
-        "time": time_string(),
-        "fields": {
-            "balance": balance
-        }
-    }
-    ]
-    toinflux(json_body)
+    g['balance'].labels(wallet="Metamask").set(balance)
 
 def value():
     selleth = eth_nzd()
-    flex = getflex()
-    meta = getmeta()
-    value = ((flex + meta) * selleth)
+    flex = getflex() * selleth
+    meta = getmeta() * selleth
+    value = (flex + meta)
+    g['value'].labels(wallet="Metamask").set(meta)
+    g['value'].labels(wallet="Flexpool").set(flex)
     print("    Total holdings" + Fore.RED + "$" + str(round(value,2)) + "NZD" + Fore.RESET)
-
-    json_body = [
-    {
-        "measurement": "value",
-        "tags": {
-            "wallet" : wallet
-        },
-        "time": time_string(),
-        "fields": {
-            "sellprice": selleth,
-            "value": value
-        }
-    }
-    ]
-    toinflux(json_body)
 
 def block_count():
     blocks = flexpoolapi.pool.block_count()
     block_total = blocks["confirmed"] + blocks["unconfirmed"]
     print("    Total Blocks Mined "+ Fore.RED + str(block_total) + Fore.RESET)
-
-    json_body = [
-    {
-        "measurement": "block",
-        "tags": {
-            "pool" : "flexpool"
-        },
-        "time": time_string(),
-        "fields": {
-            "count": block_total
-        }
-    }
-    ]
-    toinflux(json_body)
+    g['blocks'].set(block_total)
 
 def timetowait():
     delta = timedelta(minutes=1)
@@ -265,57 +108,54 @@ def timetowait():
 
 def shares():
     shares24 = flexpoolapi.miner(wallet).stats().valid_shares
-    json_body = [
-    {
-        "measurement": "shares",
-        "tags": {
-            "pool" : "flexpool"
-        },
-        "time": time_string(),
-        "fields": {
-            "shares": shares24
-        }
-    }
-    ]
-    toinflux(json_body)
+    g['shares'].set(shares24)
     print("    "+ Fore.RED + str(shares24) + Fore.RESET + " Shares in Last 24h")
-
 
 
 def main():
     try:
+        start_http_server(7890)
+
         while(True):
             
-            
-            print(Fore.GREEN + "At " + str(datetime.now()) + Fore.RESET)
-            
-            p1 = Process(target=update_balance)
-            p1.start()
-            p2 = Process(target=wallet_balance)
-            p2.start()
-            p3 = Process(target=pool_hashrate)
-            p3.start()
-            p4 = Process(target=current_hashrate)
-            p4.start()
-            p5 = Process(target=value)
-            p5.start()
-            p6 = Process(target=block_count)
-            p6.start()
-            p7 = Process(target=profitability)
-            p7.start()
-            p8 = Process(target=shares)
-            p8.start()
-            p1.join()
-            p2.join()
-            p3.join()
-            p4.join()
-            p5.join()
-            p6.join()
-            p7.join()
-            p8.join()
+          print(Fore.GREEN + "At " + str(datetime.now()) + Fore.RESET)
+          update_balance()
+          wallet_balance()
+          pool_hashrate()
+          current_hashrate()
+          value()
+          block_count()
+          profitability()
+          shares()
 
-            print(Fore.GREEN + "    Done" + Fore.RESET)
-            sleep(timetowait())
+          
+        #   p1 = Process(target=update_balance)
+        #   p1.start()
+        #   p2 = Process(target=wallet_balance)
+        #   p2.start()
+        #   p3 = Process(target=pool_hashrate)
+        #   p3.start()
+        #   p4 = Process(target=current_hashrate)
+        #   p4.start()
+        #   p5 = Process(target=value)
+        #   p5.start()
+        #   p6 = Process(target=block_count)
+        #   p6.start()
+        #   p7 = Process(target=profitability)
+        #   p7.start()
+        #   p8 = Process(target=shares)
+        #   p8.start()
+        #   p1.join()
+        #   p2.join()
+        #   p3.join()
+        #   p4.join()
+        #   p5.join()
+        #   p6.join()
+        #   p7.join()
+        #   p8.join()
+
+          print(Fore.GREEN + "    Done" + Fore.RESET)
+          sleep(timetowait())
 
     except:
         print("Error ", sys.exc_info()[0])
@@ -329,16 +169,18 @@ def main():
 #     influxport = settings['influx-settings']['port']
 #     influxuser = settings['influx-settings']['username']
 #     influspass = settings['influx-settings']['password']
-influxip = os.environ['INFLUX_IP']
-influxport = os.environ['INFLUX_PORT']
-influxuser = os.environ['INFLUX_USER']
-influxpass = os.environ['INFLUX_PASS']
+
 key = os.environ['ETHERSCAN_KEY']
 wallet = os.environ['WALLET']
 
 miner = flexpoolapi.miner(wallet)
-requests.packages.urllib3.disable_warnings()
-client = InfluxDBClient(host=influxip, port=influxport, username=influxuser, password=influxpass,ssl=True,verify_ssl=False)
+g = {}
+g['balance'] = Gauge('flex_balance_eth','Wallet Balance in Eth',['wallet'])
+g['pool'] = Gauge('flex_hashrate','Flexpool Hashrate',['region'])
+g['hashrate'] = Gauge('miner_hashrate','Miner Hashrate')
+g['value'] = Gauge('flex_value','wallet value',['wallet'])
+g['blocks'] = Gauge('flex_blocks','Block count')
+g['profit'] = Gauge('flex_profit','Current 24h profit',['currency'])
+g['shares'] = Gauge('flex_shares','24h shares')
 
-setdb()
 main()
