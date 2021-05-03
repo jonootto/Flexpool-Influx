@@ -6,7 +6,6 @@ WORKDIR /code
 
 # copy the dependencies file to the working directory
 COPY requirements.txt .
-COPY src/ .
 
 # install dependencies
 RUN apt-get update && \
@@ -17,6 +16,7 @@ RUN apt-get update && \
 
 # copy the content of the local src directory to the working directory
 
+COPY src/ .
 
 # command to run on container start
 CMD [ "python","-u","./getstats.py" ] 
