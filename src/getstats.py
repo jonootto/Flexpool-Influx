@@ -89,6 +89,8 @@ def value():
     value = (flex + meta)
     g['value'].labels(wallet="Metamask").set(meta)
     g['value'].labels(wallet="Flexpool").set(flex)
+    g['ethsell'].set(selleth)
+
     print("    Total holdings" + Fore.RED + "$" + str(round(value,2)) + "NZD" + Fore.RESET)
 
 def block_count():
@@ -182,5 +184,6 @@ g['value'] = Gauge('flex_value','wallet value',['wallet'])
 g['blocks'] = Gauge('flex_blocks','Block count')
 g['profit'] = Gauge('flex_profit','Current 24h profit',['currency'])
 g['shares'] = Gauge('flex_shares','24h shares')
+g['ethsell'] = Gauge('flex_price','Eth Sell Price Easycrypto')
 
 main()
