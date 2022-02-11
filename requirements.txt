@@ -1,4 +1,2 @@
-py-etherscan-api
-flexpoolapi
-colorama
+requests
 prometheus-client
