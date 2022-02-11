@@ -7,6 +7,7 @@ import os
 
 toeth = 1e-18
 address = os.environ['WALLET']
+refresh = int(os.environ['REFRESH']
 
 gunpaid = Gauge('flex_balance_unpaid', 'Unpaid Balance')
 gpaid = Gauge('flex_balance_paid', 'Paid Balance')
@@ -41,4 +42,5 @@ while True:
 	block = blocks['result']['total']['blocks']
 	gblocks.set(block)
 	print("Total Blocks: " + str(block))
-	time.sleep(10)
+	
+	time.sleep(refresh)
