@@ -3,9 +3,10 @@ import requests
 import json
 from prometheus_client import start_http_server, Gauge
 import time
+import os
 
 toeth = 1e-18
-address = "0xE34B8eAdc5DaB229aD8A87a860F30687719AC359"
+address = os.environ['WALLET']
 
 gunpaid = Gauge('flex_balance_unpaid', 'Unpaid Balance')
 gpaid = Gauge('flex_balance_paid', 'Paid Balance')
