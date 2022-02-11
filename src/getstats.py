@@ -14,6 +14,7 @@ gpaid = Gauge('flex_balance_paid', 'Paid Balance')
 gprofit = Gauge('flex_profit_ghash', 'Profiability/G hash')
 gblocks = Gauge('flex_total_blocks', 'Total Blocks')
 ghash = Gauge('flex_miner_hashrate', 'Miner Hashrate')
+gprofit = Gauge('flex_miner_profit', 'Current Profitability')
 
 
 start_http_server(8000)
@@ -50,6 +51,9 @@ while True:
 	hashrate = miner['result']['currentEffectiveHashrate']
 	ghash.set(hashrate)
 	print("Current hashrate: " + str(hashrate/1000000) + " Mh/s")
+	minerprofit = (pr * hashrate / 1e9)
+	gprofit.set(minerprofit)
+	print("Current Proftability: $" + str(minerprofit) + " Eth/Day")
 
 
 
