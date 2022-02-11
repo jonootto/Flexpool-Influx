@@ -2,12 +2,8 @@ version: "3.9"
 services:
   minerstat:
     #build: .
-    image: jonootto/flexpool-influx:latest
+    image: jonootto/flexpool-prometheus:latest
     container_name: minerstat
     restart: unless-stopped
     environment:
-      TZ: "Pacific/Auckland"
-      ETHERSCAN_KEY: $ETHERSCAN_KEY
       WALLET: $WALLET
-#    security_opt:
-#      - seccomp:unconfined
