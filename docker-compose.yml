@@ -1,9 +1,10 @@
 version: "3.9"
 services:
   minerstat:
-    #build: .
-    image: jonootto/flexpool-prometheus:latest
+    build: .
+    #image: ghcr.io/jonootto/flexpool-prometheus:master
     container_name: minerstat
     restart: unless-stopped
     environment:
       WALLET: $WALLET
+      REFRESH: $REFRESH

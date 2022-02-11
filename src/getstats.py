@@ -7,12 +7,13 @@ import os
 
 toeth = 1e-18
 address = os.environ['WALLET']
-refresh = int(os.environ['REFRESH']
+refresh = int(os.environ['REFRESH'])
 
 gunpaid = Gauge('flex_balance_unpaid', 'Unpaid Balance')
 gpaid = Gauge('flex_balance_paid', 'Paid Balance')
 gprofit = Gauge('flex_profit_ghash', 'Profiability/G hash')
 gblocks = Gauge('flex_total_blocks', 'Total Blocks')
+ghash = Gauge('flex_miner_hashrate', 'Miner Hashrate')
 
 
 start_http_server(8000)
@@ -35,12 +36,21 @@ while True:
 	profit = response.json()
 	pr = profit['result']*toeth
 	gprofit.set(pr)
-	print("Profitability " + str(pr) + "Eth/GH/s/Day")
+	print("Profitability " + str(pr) + " eth/GH/s/Day")
 
 	response = requests.get("https://api.flexpool.io/v2/pool/blockStatistics?coin=eth")
 	blocks = response.json()
 	block = blocks['result']['total']['blocks']
 	gblocks.set(block)
 	print("Total Blocks: " + str(block))
-	
+
+
+	response = requests.get("https://api.flexpool.io/v2/miner/stats?coin=eth&address=" + address)
+	miner = response.json()
+	hashrate = miner['result']['currentEffectiveHashrate']
+	ghash.set(hashrate)
+	print("Current hashrate: " + str(hashrate/1000000) + " Mh/s")
+
+
+
 	time.sleep(refresh)
