@@ -11,7 +11,7 @@ refresh = int(os.environ['REFRESH'])
 
 gunpaid = Gauge('flex_balance_unpaid', 'Unpaid Balance')
 gpaid = Gauge('flex_balance_paid', 'Paid Balance')
-gprofit = Gauge('flex_profit_ghash', 'Profiability/G hash')
+gprofitgh = Gauge('flex_profit_ghash', 'Profiability/G hash')
 gblocks = Gauge('flex_total_blocks', 'Total Blocks')
 ghash = Gauge('flex_miner_hashrate', 'Miner Hashrate')
 gprofit = Gauge('flex_miner_profit', 'Current Profitability')
@@ -36,7 +36,7 @@ while True:
 	response = requests.get("https://api.flexpool.io/v2/pool/dailyRewardPerGigahashSec?coin=eth")
 	profit = response.json()
 	pr = profit['result']*toeth
-	gprofit.set(pr)
+	gprofitgh.set(pr)
 	print("Profitability " + str(pr) + " eth/GH/s/Day")
 
 	response = requests.get("https://api.flexpool.io/v2/pool/blockStatistics?coin=eth")
@@ -44,7 +44,6 @@ while True:
 	block = blocks['result']['total']['blocks']
 	gblocks.set(block)
 	print("Total Blocks: " + str(block))
-
 
 	response = requests.get("https://api.flexpool.io/v2/miner/stats?coin=eth&address=" + address)
 	miner = response.json()
@@ -54,7 +53,5 @@ while True:
 	minerprofit = (pr * hashrate / 1e9)
 	gprofit.set(minerprofit)
 	print("Current Proftability: $" + str(minerprofit) + " Eth/Day")
-
-
 
 	time.sleep(refresh)
