@@ -19,4 +19,5 @@ RUN apt-get update && \
 COPY src/ .
 
 # command to run on container start
+EXPOSE 8000
 CMD [ "python","-u","./getstats.py" ] 
