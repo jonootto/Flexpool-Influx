@@ -8,3 +8,5 @@ services:
     environment:
       WALLET: $WALLET
       REFRESH: $REFRESH
+    ports:
+    - 8000:8000

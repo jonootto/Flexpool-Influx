@@ -1,4 +1,3 @@
-import re
 import requests
 
 TO_ETH = 1e-18
