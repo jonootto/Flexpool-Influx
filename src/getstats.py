@@ -1,57 +1,58 @@
 #!/usr/bin/python3
+from audioop import add
 import requests
 import json
 from prometheus_client import start_http_server, Gauge
 import time
 import os
+import flexapi
 
-toeth = 1e-18
+toETH = 1e-18
 address = os.environ['WALLET']
 refresh = int(os.environ['REFRESH'])
 
-gunpaid = Gauge('flex_balance_unpaid', 'Unpaid Balance')
-gpaid = Gauge('flex_balance_paid', 'Paid Balance')
-gprofitgh = Gauge('flex_profit_ghash', 'Profiability/G hash')
-gblocks = Gauge('flex_total_blocks', 'Total Blocks')
-ghash = Gauge('flex_miner_hashrate', 'Miner Hashrate')
-gprofit = Gauge('flex_miner_profit', 'Current Profitability')
-
+gUnpaid = Gauge('flex_balance_unpaid', 'Unpaid Balance')
+gPaid = Gauge('flex_balance_paid', 'Paid Balance')
+gProfit = Gauge('flex_profit_ghash', 'Profiability/G hash')
+gBlocks = Gauge('flex_total_blocks', 'Total Blocks')
+gHash = Gauge('flex_miner_hashrate', 'Miner Hashrate')
+gMinerProfit = Gauge('flex_miner_profit', 'Current Profitability')
 
 start_http_server(8000)
 
-while True:
-	response = requests.get("https://api.flexpool.io/v2/miner/balance?coin=eth&address=" + address + "&countervalue=NZD")
-	balance = response.json()
-	bal = balance['result']['balance']*toeth
-	gunpaid.set(bal)
-	print("Balance " + str(bal) + "eth")
+def main():
+	while True:
+		balance = flexapi.minerBalance(address)
+		if balance:
+			gUnpaid.set(balance)
+			print("Balance " + str(round(balance,6)) + " ETH")
 
-	response = requests.get("https://api.flexpool.io/v2/miner/paymentsStats?coin=eth&address=" + address)
-	payment = response.json()
-	paid = payment['result']['stats']['totalPaid']*toeth
-	gpaid.set(paid)
-	print("Total Paid: " + str(paid) + "eth")
+		paid = flexapi.totalPaid(address)
+		if paid:
+			gPaid.set(paid)
+			print("Total Paid: " + str(round(paid,6)) + " ETH")
 
+		profit = flexapi.profitGH()
+		if profit:
+			gProfit.set(profit)
+			print("Profit per GH: " + str(round(profit,6)) + " ETH/day")
 
-	response = requests.get("https://api.flexpool.io/v2/pool/dailyRewardPerGigahashSec?coin=eth")
-	profit = response.json()
-	pr = profit['result']*toeth
-	gprofitgh.set(pr)
-	print("Profitability " + str(pr) + " eth/GH/s/Day")
+		blocks = flexapi.poolBlocks()
+		if blocks:
+			gBlocks.set(blocks)
+			print("Total Blocks Mined : " + str(round(blocks,6)))
 
-	response = requests.get("https://api.flexpool.io/v2/pool/blockStatistics?coin=eth")
-	blocks = response.json()
-	block = blocks['result']['total']['blocks']
-	gblocks.set(block)
-	print("Total Blocks: " + str(block))
+		hash = flexapi.hashrate(address)
+		if hash:
+			gHash.set(hash)
+			print("Current hashrate: " + str(hash/(1e6)) + " Mh/s")
+		
+		if (hash and profit):
+			minerprofit = (profit * hash / 1e9)
+			gProfit.set(minerprofit)
+			print("Current Proftability: " + str(round(minerprofit,6)) + " ETH/Day")
 
-	response = requests.get("https://api.flexpool.io/v2/miner/stats?coin=eth&address=" + address)
-	miner = response.json()
-	hashrate = miner['result']['currentEffectiveHashrate']
-	ghash.set(hashrate)
-	print("Current hashrate: " + str(hashrate/1000000) + " Mh/s")
-	minerprofit = (pr * hashrate / 1e9)
-	gprofit.set(minerprofit)
-	print("Current Proftability: $" + str(minerprofit) + " Eth/Day")
+		time.sleep(refresh)
 
-	time.sleep(refresh)
+if __name__ == "__main__":
+    main()
