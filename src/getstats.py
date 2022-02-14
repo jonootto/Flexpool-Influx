@@ -4,8 +4,6 @@ import time
 import os
 import flexapi
 
-
-
 def main():
 	address = os.environ['WALLET']
 	refresh = int(os.environ['REFRESH'])
